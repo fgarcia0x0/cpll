@@ -4,8 +4,6 @@
 #include <string>
 #include <token_stream.h>
 
-using std::string;
-
 namespace pll
 {
     std::optional<token> token_stream::next_token() noexcept

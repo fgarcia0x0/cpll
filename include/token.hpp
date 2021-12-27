@@ -6,7 +6,7 @@
 #include <ostream>
 
 namespace pll
-{    
+{   
     struct token
     {
         enum class type
@@ -15,8 +15,7 @@ namespace pll
             connective,
             lparan,
             rparan,
-            unknown,
-            invalid
+            unknown
         };
 
         char value;
@@ -42,9 +41,6 @@ namespace pll
                     break;
                 case type::unknown:
                     type_str = "unknown";
-                    break;
-                case type::invalid:
-                    type_str = "invalid";
                     break;
             }
 

@@ -19,7 +19,7 @@ namespace pll
         constexpr token_stream(token_stream&&) = default;
 
         constexpr token_stream(string_view input, 
-                               string_view alphabet, 
+                               string_view alphabet,
                                string_view connectives)
             : m_data_ptr{ input.begin() },
               m_alphabet{ alphabet },
