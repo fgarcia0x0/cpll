@@ -1,10 +1,14 @@
+#include <stack>
+#include <queue>
+#include <iostream>
+#include <cstring>
+#include <utils.hpp>
 #include <parser.h>
 
 namespace pll
 {
-    std::map<char, char> parser(std::string_view input, 
-                                token_stream& stream)
-    {
-        return {};
-    }
+	bool parser(token_stream& stream)
+	{
+		return false;
+	}
 }

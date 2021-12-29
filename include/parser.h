@@ -8,6 +8,5 @@
 
 namespace pll
 {
-    std::map<char, char> parser(std::string_view input, 
-                                token_stream& stream);
+    bool parser(token_stream& stream);
 }
