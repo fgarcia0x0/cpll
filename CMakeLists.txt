@@ -10,7 +10,9 @@ if (NOT MSVC)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wpedantic -Wextra -Wno-unused-function -Wno-unused-parameter")
 endif()
 
-find_package(GTest CONFIG REQUIRED)
+if (PLL_ENABLE_BUILD_TESTING)
+	find_package(GTest CONFIG REQUIRED)
+endif()
 
 file(GLOB_RECURSE PLL_SOURCES RELATIVE ${PROJECT_SOURCE_DIR} "src/*.cpp")
 file(GLOB_RECURSE PLC_SOURCES RELATIVE ${PROJECT_SOURCE_DIR} "test/*.cpp")
