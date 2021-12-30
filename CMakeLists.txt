@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.12.0)
-project(pll VERSION 0.0.1)
+project(pll VERSION 0.0.2)
 
 include(CTest)
 
@@ -18,6 +18,9 @@ add_executable(plc ${PLC_SOURCES})
 
 target_include_directories(pll PUBLIC ${PROJECT_SOURCE_DIR}/include)
 target_link_libraries(plc pll)
+
+## find_package(GTest CONFIG REQUIRED)
+## target_link_libraries(main PRIVATE GTest::gmock GTest::gtest GTest::gmock_main GTest::gtest_main)
 
 set_target_properties(pll plc PROPERTIES
 	CXX_STANDARD 17

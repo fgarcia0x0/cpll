@@ -9,13 +9,18 @@
 
 namespace pll
 {
+    /**
+     * @brief 
+     * 
+     */
     class token_stream
     {
     public:
         using connective_props_map_type = std::unordered_map<token, connective_properties>;
         
         constexpr token_stream() = default;
-        constexpr token_stream(const token_stream&) = default;
+        constexpr token_stream(const token_stream&) = delete;
+        constexpr auto& operator=(const token_stream&) = delete;
         constexpr token_stream(token_stream&&) = default;
 
         constexpr token_stream(std::string_view input, 
@@ -36,23 +41,21 @@ namespace pll
             return *m_data_ptr == '\0';
         }
 
+        [[nodiscard]] 
+        std::optional<token> current_token() noexcept;
+
         [[maybe_unused]]
         std::optional<token> next_token() noexcept;
-
-        [[nodiscard]] 
-        std::optional<token> current_token()
-        {
-            auto* save = m_data_ptr;
-            auto current = next_token();
-            m_data_ptr = save;
-            return current;
-        }
         
         template <typename OutputIter>
-        constexpr void write(OutputIter output)
+        void write(OutputIter output)
         {
+            auto* save = m_data_ptr;
+
             while (!eos())
                 *output++ = next_token();
+
+            m_data_ptr = save;
         }
 
         std::optional<connective_properties> get_connective_props(token target) const noexcept
@@ -62,11 +65,6 @@ namespace pll
                 return search->second;
             else
                 return std::nullopt; 
-        }
-
-        constexpr std::string_view connectives() const noexcept
-        {
-            return m_connectives;
         }
 
     private:

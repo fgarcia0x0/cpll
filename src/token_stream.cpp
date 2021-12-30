@@ -6,7 +6,7 @@
 
 namespace pll
 {
-    std::optional<token> token_stream::next_token() noexcept
+    std::optional<token> token_stream::current_token() noexcept
     {
         if (!this->eos())
         {
@@ -37,9 +37,16 @@ namespace pll
                 token_type = token::type::connective;
             }
 
-            return token{ *m_data_ptr++, token_type };
+            return token{ *m_data_ptr, token_type };
         }
 
         return std::nullopt;
+    }
+
+    std::optional<token> token_stream::next_token() noexcept
+    {
+        std::optional<token> current = current_token();
+        ++m_data_ptr;
+        return current;
     }
 }

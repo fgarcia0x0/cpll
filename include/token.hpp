@@ -1,6 +1,5 @@
 #pragma once
 
-#include <string>
 #include <string_view>
 #include <cstdint>
 #include <ostream>
@@ -37,9 +36,10 @@ namespace pll
             connective,
             lparan,
             rparan,
-            unknown,
-            sentinel
+            unknown
         };
+
+        using token_type = type;
 
         char value;
         type type;
@@ -65,14 +65,12 @@ namespace pll
                 case type::unknown:
                     type_str = "unknown";
                     break;
-                case type::sentinel:
-                    break;
             }
 
             return type_str;
         }
 
-        friend auto& operator <<(std::ostream& os, token input)
+        friend auto& operator<<(std::ostream& os, token input)
         {
             os << "{" << input.value << ", " << input.type_str() << "}";
             return os;
@@ -90,6 +88,7 @@ namespace pll
     };
 }
 
+// Generate struct hashing for unordered map
 template <>
 struct std::hash<pll::connective_properties>
 {
@@ -107,7 +106,7 @@ struct std::hash<pll::token>
     std::size_t operator()(const pll::token& token) const noexcept
     {
         std::size_t h1 = std::hash<char>{}(token.value);
-        std::size_t h2 = std::hash<typename pll::token::type>{}(token.type);
+        std::size_t h2 = std::hash<pll::token::token_type>{}(token.type);
         return h1 ^ (h2 << 1);
     }
 };

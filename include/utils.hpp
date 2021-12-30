@@ -9,7 +9,6 @@ static inline auto conn_extract_props(pll::token token,
     return stream.get_connective_props(token);
 }
 
-
 [[nodiscard]]
 static bool check_operation_mode(pll::token token, 
                                  const pll::token_stream& stream,
