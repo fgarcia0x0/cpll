@@ -18,16 +18,21 @@ file(GLOB_RECURSE PLC_SOURCES RELATIVE ${PROJECT_SOURCE_DIR} "test/*.cpp")
 add_library(pll SHARED ${PLL_SOURCES})
 target_include_directories(pll PUBLIC ${PROJECT_SOURCE_DIR}/include)
 
-enable_testing()
-
-IF (BUILD_TESTING)
+if (PLL_ENABLE_BUILD_TESTING)
+	enable_testing()
 	add_executable(pll_test_coverage ${PLC_SOURCES})
 	target_link_libraries(pll_test_coverage PRIVATE pll GTest::gmock GTest::gtest GTest::gmock_main GTest::gtest_main)
 	include(GoogleTest)
 	gtest_discover_tests(pll_test_coverage)
-ENDIF(BUILD_TESTING)
 
-set_target_properties(pll pll_test_coverage PROPERTIES
+	set_target_properties(pll_test_coverage PROPERTIES
+		CXX_STANDARD 17
+		CXX_STANDARD_REQUIRED ON
+		CXX_EXTENSIONS OFF
+	)
+endif()
+
+set_target_properties(pll PROPERTIES
 	CXX_STANDARD 17
 	CXX_STANDARD_REQUIRED ON
 	CXX_EXTENSIONS OFF
