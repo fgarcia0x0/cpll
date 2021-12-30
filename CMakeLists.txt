@@ -20,11 +20,12 @@ target_include_directories(pll PUBLIC ${PROJECT_SOURCE_DIR}/include)
 
 enable_testing()
 
-add_executable(pll_test_coverage ${PLC_SOURCES})
-target_link_libraries(pll_test_coverage PRIVATE pll GTest::gmock GTest::gtest GTest::gmock_main GTest::gtest_main)
-
-include(GoogleTest)
-gtest_discover_tests(pll_test_coverage)
+IF (BUILD_TESTING)
+	add_executable(pll_test_coverage ${PLC_SOURCES})
+	target_link_libraries(pll_test_coverage PRIVATE pll GTest::gmock GTest::gtest GTest::gmock_main GTest::gtest_main)
+	include(GoogleTest)
+	gtest_discover_tests(pll_test_coverage)
+ENDIF(BUILD_TESTING)
 
 set_target_properties(pll pll_test_coverage PROPERTIES
 	CXX_STANDARD 17
