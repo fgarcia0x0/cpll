@@ -10,19 +10,23 @@ if (NOT MSVC)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wpedantic -Wextra -Wno-unused-function -Wno-unused-parameter")
 endif()
 
+find_package(GTest CONFIG REQUIRED)
+
 file(GLOB_RECURSE PLL_SOURCES RELATIVE ${CMAKE_SOURCE_DIR} "src/*.cpp")
-file(GLOB_RECURSE PLC_SOURCES RELATIVE ${CMAKE_SOURCE_DIR} "test/*.cpp")
+file(GLOB_RECURSE PLC_SOURCES RELATIVE ${CMAKE_SOURCE_DIR} "test/formula_test.cpp")
 
 add_library(pll SHARED ${PLL_SOURCES})
-add_executable(plc ${PLC_SOURCES})
-
 target_include_directories(pll PUBLIC ${PROJECT_SOURCE_DIR}/include)
-target_link_libraries(plc pll)
 
-## find_package(GTest CONFIG REQUIRED)
-## target_link_libraries(main PRIVATE GTest::gmock GTest::gtest GTest::gmock_main GTest::gtest_main)
+enable_testing()
 
-set_target_properties(pll plc PROPERTIES
+add_executable(pll_test_coverage ${PLC_SOURCES})
+target_link_libraries(pll_test_coverage PRIVATE pll GTest::gmock GTest::gtest GTest::gmock_main GTest::gtest_main)
+
+include(GoogleTest)
+gtest_discover_tests(pll_test_coverage)
+
+set_target_properties(pll pll_test_coverage PROPERTIES
 	CXX_STANDARD 17
 	CXX_STANDARD_REQUIRED ON
 	CXX_EXTENSIONS OFF
