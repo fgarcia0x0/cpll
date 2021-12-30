@@ -13,7 +13,7 @@ endif()
 find_package(GTest CONFIG REQUIRED)
 
 file(GLOB_RECURSE PLL_SOURCES RELATIVE ${PROJECT_SOURCE_DIR} "src/*.cpp")
-file(GLOB_RECURSE PLC_SOURCES RELATIVE ${PROJECT_SOURCE_DIR} "test/formula_test.cpp")
+file(GLOB_RECURSE PLC_SOURCES RELATIVE ${PROJECT_SOURCE_DIR} "test/*.cpp")
 
 add_library(pll SHARED ${PLL_SOURCES})
 target_include_directories(pll PUBLIC ${PROJECT_SOURCE_DIR}/include)
