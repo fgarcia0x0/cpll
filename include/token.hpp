@@ -44,6 +44,12 @@ namespace pll
         char value;
         type type;
 
+        constexpr token(char v, token_type t) noexcept
+            : value{v},
+              type{t}
+        {
+        }
+
         constexpr std::string_view type_str() noexcept
         {
             const char* type_str = "";

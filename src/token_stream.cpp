@@ -2,6 +2,7 @@
 #include <cstring>
 #include <algorithm>
 #include <string>
+#include <cctype>
 #include <token_stream.h>
 
 namespace pll
