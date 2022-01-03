@@ -8,17 +8,18 @@ using pll::token;
 using pll::connective_properties;
 using pll::operation_mode;
 using pll::associativity;
+using pll::connective_type;
 using pll::grammar::recognize;
 using pll::token_stream;
 
 static std::unordered_map<token, connective_properties> connective_props_map
 {
-    { token{'>', token::type::connective}, {0u, operation_mode::binary, associativity::right}},
-    { token{'#', token::type::connective}, {1u, operation_mode::binary, associativity::left}},  
-    { token{'&', token::type::connective}, {2u, operation_mode::binary, associativity::left}},
-    { token{'-', token::type::connective}, {3u, operation_mode::unary,  associativity::left}}, 
-    { token{'(', token::type::lparan},     {3u, operation_mode::none,   associativity::none}}, 
-    { token{')', token::type::rparan},     {3u, operation_mode::none,   associativity::none}}, 
+    { token{'>', token::type::connective}, {0u, connective_type::implication, operation_mode::binary, associativity::right}},
+    { token{'#', token::type::connective}, {1u, connective_type::disjuntive,  operation_mode::binary, associativity::left}},  
+    { token{'&', token::type::connective}, {2u, connective_type::conjuntive,  operation_mode::binary, associativity::left}},
+    { token{'-', token::type::connective}, {3u, connective_type::negation,    operation_mode::unary,  associativity::left}}, 
+    { token{'(', token::type::lparan},     {3u, connective_type::none,        operation_mode::none,   associativity::none}}, 
+    { token{')', token::type::rparan},     {3u, connective_type::none,        operation_mode::none,   associativity::none}}, 
 };
 
 static std::array g_basic_formulas

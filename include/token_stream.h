@@ -17,7 +17,7 @@ namespace pll
     {
     public:
         using connective_props_map_type = std::unordered_map<token, connective_properties>;
-        
+
         constexpr token_stream() = default;
         constexpr token_stream(const token_stream&) = delete;
         constexpr auto& operator=(const token_stream&) = delete;
@@ -65,6 +65,19 @@ namespace pll
                 return search->second;
             else
                 return std::nullopt; 
+        }
+
+        std::optional<token> operator++(int) = delete;
+
+        [[maybe_unused]]
+        std::optional<token> operator++()
+        {
+            return next_token();
+        }
+
+        std::optional<token> operator*()
+        {
+            return current_token();
         }
 
     private:
