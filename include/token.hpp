@@ -21,9 +21,19 @@ namespace pll
         none
     };
 
+    enum class connective_type
+    {
+        none,
+        implication,
+        conjuntive,
+        disjuntive,
+        negation
+    };
+
     struct connective_properties
     {
         uint8_t precedence;
+        connective_type type;
         operation_mode mode;
         associativity assoc;
     };
@@ -43,6 +53,12 @@ namespace pll
 
         char value;
         type type;
+
+        constexpr token()
+            : value{},
+              type{}
+        {
+        };
 
         constexpr token(char v, token_type t) noexcept
             : value{v},
