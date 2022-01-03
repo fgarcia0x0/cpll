@@ -5,6 +5,7 @@ include(CTest)
 
 message(STATUS "Build Type: ${CMAKE_BUILD_TYPE}")
 message(STATUS "CMAKE Generator: ${CMAKE_GENERATOR}")
+message(STATUS "Build Test: ${PLL_ENABLE_BUILD_TESTING}")
 
 if (NOT MSVC)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wpedantic -Wextra -Wno-unused-function -Wno-unused-parameter")
