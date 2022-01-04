@@ -3,6 +3,7 @@
 #include <vector>
 #include <type_traits>
 #include <stack>
+#include <unordered_map>
 
 #include <token.hpp>
 #include <bst_node.hpp>
@@ -10,7 +11,7 @@
 namespace pll::cnf
 {
     using detail::bst_node;
-
+    
     struct rule_handle_case
     {
     };
@@ -32,26 +33,34 @@ namespace pll::cnf
     };
 
     // default
-    static void handle_case(bst_node** root_pptr, rule_handle_case) = delete;
+    static void handle_case(bst_node** root_pptr, 
+                            const connective_prop_map& conn_prop_map,
+                            rule_handle_case) = delete;
 
     // Joao
-    static void handle_case(bst_node** root_pptr, rule_double_negation)
+    static void handle_case(bst_node** root_pptr, 
+                            const connective_prop_map& conn_prop_map,
+                            rule_double_negation)
     {
 
     }
 
     // Jonadabe
-    static bst_node** handle_case(bst_node** root_pptr, rule_negation_distribution)
+    static bst_node** handle_case(bst_node** root_pptr,
+                                  const connective_prop_map& conn_prop_map,
+                                  rule_negation_distribution)
     {
         auto current_node = *root_pptr;
 
         char mode = current_node->left->value.value;
 
-        if (current_node->value.value       == '-' && 
-            current_node->left->value.value == '&' || 
-            current_node->left->value.value == '#')
+        bool is_neg = is_connective_type(current_node->value, conn_prop_map, connective_type::negation);
+        bool is_conj = is_connective_type(current_node->value, conn_prop_map, connective_type::conjuntive);
+        bool is_disj = is_connective_type(current_node->value, conn_prop_map, connective_type::disjuntive);
+
+        if (is_neg && (is_conj || is_disj))
         {
-            current_node->left->value.value == '-';
+            current_node->left->value.value = '-';
             current_node->right = new bst_node(token('-',token::type::connective), nullptr, nullptr);
             
             if(mode == '#')
@@ -70,7 +79,9 @@ namespace pll::cnf
     }
 
     // Jonadade
-    static bst_node** handle_case(bst_node** root_pptr, rule_disjunction_distribution)
+    static bst_node** handle_case(bst_node** root_pptr,
+                                  const connective_prop_map& conn_prop_map, 
+                                  rule_disjunction_distribution)
     {
         auto current_node = *root_pptr;
         if(current_node->value.value = '#')
@@ -103,15 +114,18 @@ namespace pll::cnf
     }
 
     // Zazac
-    static void handle_case(bst_node** root_pptr, rule_double_conjunction)
+    static void handle_case(bst_node** root_pptr,
+                            const connective_prop_map& conn_prop_map,
+                            rule_double_conjunction)
     {
     }
 
-    static void parse_disjunction_rules(bst_node** root_pptr)
+    static void parse_disjunction_rules(bst_node** root_pptr,
+                                        const connective_prop_map& conn_prop_map)
     {
         auto current_node = *root_pptr;
 
-        std::stack<bst_node*> stack;
+        std::stack<bst_node *> stack;
         stack.push(*root_pptr);
 
         while (!stack.empty())
@@ -124,15 +138,14 @@ namespace pll::cnf
                 if (current_node->left->value.value  == '&' &&
                     current_node->right->value.value == '&')
                 {
-                    handle_case(&current_node, rule_double_conjunction());
+                    handle_case(&current_node, conn_prop_map, rule_double_conjunction{});
 
                     stack.push(current_node->left);
                     stack.push(current_node->right);
                 }
                 else
                 {
-                    handle_case(&current_node, rule_disjunction_distribution());
-                    
+                    handle_case(&current_node, conn_prop_map, rule_disjunction_distribution{});
                     stack.push(current_node->left);
                     stack.push(current_node->right);
                 }
