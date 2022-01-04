@@ -63,8 +63,36 @@ namespace pll::cnf
     }
 
     // Jonadade
-    static void handle_case(bst_node** root_pptr, rule_disjunction_distribution)
+    static bst_node** handle_case(bst_node** root_pptr, rule_disjunction_distribution)
     {
+        auto current_node = *root_pptr;
+        if(current_node->value.value = '#')
+        {
+            if(current_node->left->value.value == '&' && current_node->right->value.value != '&')
+            {
+                current_node->value.value = '&';
+                current_node->left->value.value = '#';
+                auto right_copy_tree = current_node->right->clone();
+                auto new_tree = new bst_node(token('#',token::type::connective), nullptr, nullptr);
+
+                current_node->right = new_tree;
+                new_tree->right = current_node->right;
+                current_node->right->left = current_node->left->right;
+                current_node->left->right = right_copy_tree;
+            }else if(current_node->right->value.value == '&' && current_node->left->value.value != '&')
+            {
+                current_node->value.value = '&';
+                current_node->right->value.value = '#';
+                auto right_copy_tree = current_node->left->clone();
+                auto new_tree = new bst_node(token('#',token::type::connective), nullptr, nullptr);
+
+                current_node->left = new_tree;
+                new_tree->left = current_node->left;
+                current_node->left->right = current_node->right->left;
+                current_node->right->left = right_copy_tree;
+            }
+        }
+        return &current_node;
     }
 
     // Zazac
