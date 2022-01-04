@@ -44,17 +44,24 @@ namespace pll::cnf
     static bst_node** handle_case(bst_node** root_pptr, rule_negation_distribution)
     {
         auto current_node = *root_pptr;
+
         char mode = current_node->left->value.value;
-        if (current_node->value.value == '-' && current_node->left->value.value == '&' || current_node->left->value.value == '#')
+
+        if (current_node->value.value       == '-' && 
+            current_node->left->value.value == '&' || 
+            current_node->left->value.value == '#')
         {
             current_node->left->value.value == '-';
             current_node->right = new bst_node(token('-',token::type::connective), nullptr, nullptr);
+            
             if(mode == '#')
                 current_node->value.value = '&';
+
             if(mode == '&')
                 current_node->value.value = '#';
-            current_node->right->left = current_node->left->right;
-            current_node->left->right = nullptr;
+
+            current_node->right->left  = current_node->left->right;
+            current_node->left->right  = nullptr;
             current_node->right->right = nullptr;
         }
 
@@ -111,7 +118,7 @@ namespace pll::cnf
     {
         // With doubts about the arguments of the function
     }
-    
+
     /*  
                     [Name Convention]
         or_rule         => parse_disjunction_rules
