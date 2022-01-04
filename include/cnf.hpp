@@ -105,6 +105,39 @@ namespace pll::cnf
     // Zazac
     static void handle_case(bst_node** root_pptr, rule_double_conjunction)
     {
+        // (p and q) or (r and t) = (p or r) and (p or t) and (q or r) and (q or t)
+        auto current_node = *root_pptr;
+
+        if (current_node->value.value == '#')
+        {
+
+            if(current_node->left->value.value == '&' && current_node->right->value.value == '&')
+            {
+                current_node->value.value = '&';
+
+                bst_node *list_of_nodes[4] = {NULL, NULL, NULL, NULL}; // setting node list
+                for(int i = 0; i < 4; ++i)
+                {
+                   list_of_nodes[i] = new bst_node(token('#',token::type::connective), nullptr, nullptr);
+                }
+
+                list_of_nodes[0]->left = current_node->left->left->clone();
+                list_of_nodes[0]->right = current_node->right->left->clone();
+                list_of_nodes[1]->left = current_node->left->left->clone();
+                list_of_nodes[1]->right = current_node->right->right->clone();
+                list_of_nodes[2]->left = current_node->left->right->clone();
+                list_of_nodes[2]->right = current_node->right->left->clone();
+                list_of_nodes[3]->left = current_node->left->right->clone();
+                list_of_nodes[3]->right = current_node->right->right->clone();
+
+                current_node->left->left = list_of_nodes[0];
+                current_node->left->right = list_of_nodes[1];
+                current_node->right->left = list_of_nodes[2];
+                current_node->right->right = list_of_nodes[3];
+            }
+        }
+        *root_pptr = current_node;
+
     }
 
     static void parse_disjunction_rules(bst_node** root_pptr)
@@ -140,6 +173,11 @@ namespace pll::cnf
             else
                 continue;
         }
+    }
+
+    static bst_node** prop_to_bst()
+    {
+        
     }
 
     static void simplifier_cnf_expr()
