@@ -60,3 +60,14 @@ static bool is_right_assoc(pll::token token,
 {
      return check_associativity(token, stream, pll::associativity::right);
 }
+
+static bool is_connective_type(pll::token target,
+                               const pll::connective_prop_map& conn_map,
+                               pll::connective_type conn_type)
+{
+    const auto search = conn_map.find(target);
+    if (search != conn_map.cend())
+        return search->second.type == conn_type;
+    else
+        return false;
+}

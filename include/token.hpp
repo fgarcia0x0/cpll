@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <ostream>
 #include <functional>
+#include <unordered_map>
 
 namespace pll
 {   
@@ -108,6 +109,8 @@ namespace pll
             return !(lhs == rhs);
         }
     };
+
+    using connective_prop_map = std::unordered_map<token, connective_properties>;
 }
 
 // Generate struct hashing for unordered map
