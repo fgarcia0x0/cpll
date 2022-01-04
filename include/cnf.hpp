@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <type_traits>
+#include <stack>
 
 #include <token.hpp>
 #include <bst_node.hpp>
@@ -71,6 +72,46 @@ namespace pll::cnf
     {
     }
 
+    static void parse_disjunction_rules(bst_node** root_pptr)
+    {
+        auto current_node = *root_pptr;
+
+        std::stack<bst_node*> stack;
+        stack.push(*root_pptr);
+
+        while (!stack.empty())
+        {
+            current_node = stack.top();
+            stack.pop();
+
+            if (current_node->value.value == '#')
+            {
+                if (current_node->left->value.value  == '&' &&
+                    current_node->right->value.value == '&')
+                {
+                    handle_case(&current_node, rule_double_conjunction());
+
+                    stack.push(current_node->left);
+                    stack.push(current_node->right);
+                }
+                else
+                {
+                    handle_case(&current_node, rule_disjunction_distribution());
+                    
+                    stack.push(current_node->left);
+                    stack.push(current_node->right);
+                }
+            }
+            else
+                continue;
+        }
+    }
+
+    static void simplifier_cnf_expr()
+    {
+        // With doubts about the arguments of the function
+    }
+    
     /*  
                     [Name Convention]
         or_rule         => parse_disjunction_rules
