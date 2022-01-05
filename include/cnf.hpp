@@ -4,13 +4,31 @@
 #include <type_traits>
 #include <stack>
 #include <unordered_map>
+#include <array>
+#include <optional>
+#include <iterator>
+#include <utils.hpp>
+#include <cassert>
+#include <string>
 
 #include <token.hpp>
+#include <token_stream.h>
 #include <bst_node.hpp>
 
 namespace pll::cnf
 {
     using detail::bst_node;
+    
+    struct bst_node_wrapper
+    {
+        bst_node* node;
+        bool is_ptr_ref;
+
+        static bst_node_wrapper make(bst_node* curr, bool ptr_ref)
+        {
+            return bst_node_wrapper{ curr, ptr_ref };
+        }
+    };
     
     struct rule_handle_case
     {
@@ -46,71 +64,93 @@ namespace pll::cnf
     }
 
     // Jonadabe
-    static bst_node** handle_case(bst_node** root_pptr,
-                                  const connective_prop_map& conn_prop_map,
-                                  rule_negation_distribution)
+    static void handle_case(bst_node** root_pptr,
+                            const connective_prop_map& conn_prop_map,
+                            rule_negation_distribution)
     {
-        auto current_node = *root_pptr;
+        bst_node* curr = *root_pptr;
+        auto mode = conn_prop_map.find(curr->left->value)->second.type;
+        auto conn_neg = extract_token(connective_type::negation, conn_prop_map);
 
-        char mode = current_node->left->value.value;
-
-        bool is_neg = is_connective_type(current_node->value, conn_prop_map, connective_type::negation);
-        bool is_conj = is_connective_type(current_node->value, conn_prop_map, connective_type::conjuntive);
-        bool is_disj = is_connective_type(current_node->value, conn_prop_map, connective_type::disjuntive);
+        bool is_neg  = is_connective_type(curr->value, conn_prop_map, connective_type::negation);
+        bool is_conj = is_connective_type(curr->left->value, conn_prop_map, connective_type::conjuntive);
+        bool is_disj = is_connective_type(curr->left->value, conn_prop_map, connective_type::disjuntive);
 
         if (is_neg && (is_conj || is_disj))
         {
-            current_node->left->value.value = '-';
-            current_node->right = new bst_node(token('-',token::type::connective), nullptr, nullptr);
+            curr->left->value = conn_neg;
+            curr->right = new bst_node(conn_neg, nullptr, nullptr);
             
-            if(mode == '#')
-                current_node->value.value = '&';
+            if (mode == connective_type::disjuntive)
+                curr->value = extract_token(connective_type::conjuntive, conn_prop_map);
 
-            if(mode == '&')
-                current_node->value.value = '#';
+            if (mode == connective_type::conjuntive)
+                curr->value = extract_token(connective_type::disjuntive, conn_prop_map);
 
-            current_node->right->left  = current_node->left->right;
-            current_node->left->right  = nullptr;
-            current_node->right->right = nullptr;
+            curr->right->left  = curr->left->right;
+            curr->left->right  = nullptr;
+            curr->right->right = nullptr;
         }
 
-        return &current_node; 
-
+        *root_pptr = curr;
     }
 
     // Jonadade
-    static bst_node** handle_case(bst_node** root_pptr,
-                                  const connective_prop_map& conn_prop_map, 
-                                  rule_disjunction_distribution)
+    static void handle_case(bst_node** root_pptr,
+                            const connective_prop_map& conn_prop_map, 
+                            rule_disjunction_distribution)
     {
-        auto current_node = *root_pptr;
-        if(current_node->value.value = '#')
+        auto curr = *root_pptr;
+        
+        bool is_conn = is_connective_type(curr->value,
+                                          conn_prop_map,
+                                          connective_type::disjuntive);
+        
+        if (is_conn)
         {
-            if(current_node->left->value.value == '&' && current_node->right->value.value != '&')
+            auto is_conn_left  = is_connective_type(curr->left->value, 
+                                                    conn_prop_map, 
+                                                    connective_type::conjuntive);
+                                                    
+            auto is_conn_right = is_connective_type(curr->right->value, 
+                                                    conn_prop_map, 
+                                                    connective_type::conjuntive);
+            
+            if (is_conn_left && !is_conn_right)
             {
-                current_node->value.value = '&';
-                current_node->left->value.value = '#';
-                auto right_copy_tree = current_node->right->clone();
-                auto new_tree = new bst_node(token('#',token::type::connective), nullptr, nullptr);
+                curr->value = extract_token(connective_type::conjuntive, 
+                                            conn_prop_map);
 
-                current_node->right = new_tree;
-                new_tree->right = current_node->right;
-                current_node->right->left = current_node->left->right;
-                current_node->left->right = right_copy_tree;
-            }else if(current_node->right->value.value == '&' && current_node->left->value.value != '&')
+                curr->left->value = extract_token(connective_type::disjuntive, 
+                                                  conn_prop_map);
+                
+                auto right_copy_tree = curr->right->clone();
+                auto new_tree = new bst_node(curr->left->value, nullptr, nullptr);
+
+                curr->right       = new_tree;
+                new_tree->right   = curr->right;
+                curr->right->left = curr->left->right;
+                curr->left->right = right_copy_tree;
+            }
+            else if (is_conn_right && !is_conn_left)
             {
-                current_node->value.value = '&';
-                current_node->right->value.value = '#';
-                auto right_copy_tree = current_node->left->clone();
-                auto new_tree = new bst_node(token('#',token::type::connective), nullptr, nullptr);
+                curr->value = extract_token(connective_type::conjuntive, 
+                                            conn_prop_map);
+                                                    
+                curr->right->value = extract_token(connective_type::disjuntive, 
+                                                   conn_prop_map);
 
-                current_node->left = new_tree;
-                new_tree->left = current_node->left;
-                current_node->left->right = current_node->right->left;
-                current_node->right->left = right_copy_tree;
+                auto right_copy_tree = curr->left->clone();
+                auto new_tree = new bst_node(curr->right->value, nullptr, nullptr);
+
+                curr->left        = new_tree;
+                new_tree->left    = curr->left;
+                curr->left->right = curr->right->left;
+                curr->right->left = right_copy_tree;
             }
         }
-        return &current_node;
+
+        *root_pptr = curr;
     }
 
     // Zazac
@@ -118,94 +158,293 @@ namespace pll::cnf
                             const connective_prop_map& conn_prop_map,
                             rule_double_conjunction)
     {
-        // (p and q) or (r and t) = (p or r) and (p or t) and (q or r) and (q or t)
-        auto current_node = *root_pptr;
-
-        if (current_node->value.value == '#')
+        // (p&q) # (r&t) ==> (p#r) & (p#t) & (q#r) & (q#t)
+        auto curr = *root_pptr;
+        auto conn_type = is_connective_type(curr->value, conn_prop_map, connective_type::disjuntive);
+        
+        if (conn_type)
         {
-
-            if(current_node->left->value.value == '&' && current_node->right->value.value == '&')
+            auto is_conn_left  = is_connective_type(curr->left->value, 
+                                                    conn_prop_map, 
+                                                    connective_type::conjuntive);
+                                                    
+            auto is_conn_right = is_connective_type(curr->right->value, 
+                                                    conn_prop_map, 
+                                                    connective_type::conjuntive);
+                                                    
+            if(is_conn_left && is_conn_right)
             {
-                current_node->value.value = '&';
+                curr->value = extract_token(connective_type::conjuntive,
+                                            conn_prop_map);
+                
+                std::array<bst_node *, 4> tree_list;
 
-                bst_node *list_of_nodes[4] = {NULL, NULL, NULL, NULL}; // setting node list
-                for(int i = 0; i < 4; ++i)
-                {
-                   list_of_nodes[i] = new bst_node(token('#',token::type::connective), nullptr, nullptr);
-                }
+                auto conn_or = extract_token(connective_type::disjuntive, conn_prop_map);
+                for (auto& tree : tree_list)
+                    tree = new bst_node(conn_or, nullptr, nullptr);
 
-                list_of_nodes[0]->left = current_node->left->left->clone();
-                list_of_nodes[0]->right = current_node->right->left->clone();
-                list_of_nodes[1]->left = current_node->left->left->clone();
-                list_of_nodes[1]->right = current_node->right->right->clone();
-                list_of_nodes[2]->left = current_node->left->right->clone();
-                list_of_nodes[2]->right = current_node->right->left->clone();
-                list_of_nodes[3]->left = current_node->left->right->clone();
-                list_of_nodes[3]->right = current_node->right->right->clone();
+                tree_list[0]->left  = curr->left->left->clone();
+                tree_list[0]->right = curr->right->left->clone();
 
-                current_node->left->left = list_of_nodes[0];
-                current_node->left->right = list_of_nodes[1];
-                current_node->right->left = list_of_nodes[2];
-                current_node->right->right = list_of_nodes[3];
+                tree_list[1]->left  = curr->left->left->clone();
+                tree_list[1]->right = curr->right->right->clone();
+
+                tree_list[2]->left  = curr->left->right->clone();
+                tree_list[2]->right = curr->right->left->clone();
+                
+                tree_list[3]->left  = curr->left->right->clone();
+                tree_list[3]->right = curr->right->right->clone();
+
+                curr->left->left   = tree_list[0];
+                curr->left->right  = tree_list[1];
+                
+                curr->right->left  = tree_list[2];
+                curr->right->right = tree_list[3];
             }
         }
-        *root_pptr = current_node;
-
+        
+        *root_pptr = curr;
     }
 
+    // TODO: Testar
     static void parse_disjunction_rules(bst_node** root_pptr,
                                         const connective_prop_map& conn_prop_map)
     {
-        auto current_node = *root_pptr;
+        auto curr = *root_pptr;
 
         std::stack<bst_node *> stack;
         stack.push(*root_pptr);
 
         while (!stack.empty())
         {
-            current_node = stack.top();
+            curr = stack.top();
             stack.pop();
 
-            if (current_node->value.value == '#')
-            {
-                if (current_node->left->value.value  == '&' &&
-                    current_node->right->value.value == '&')
-                {
-                    handle_case(&current_node, conn_prop_map, rule_double_conjunction{});
+            bool is_conn = is_connective_type(curr->value,
+                                              conn_prop_map,
+                                              connective_type::disjuntive);
 
-                    stack.push(current_node->left);
-                    stack.push(current_node->right);
+            if (is_conn)
+            {
+                auto is_conn_left  = is_connective_type(curr->left->value, 
+                                                        conn_prop_map, 
+                                                        connective_type::conjuntive);
+                                                    
+                auto is_conn_right = is_connective_type(curr->right->value,
+                                                        conn_prop_map, 
+                                                        connective_type::conjuntive);
+
+                if (is_conn_left && is_conn_right)
+                    handle_case(&curr, conn_prop_map, rule_double_conjunction{});
+                else
+                    handle_case(&curr, conn_prop_map, rule_disjunction_distribution{});
+
+                stack.push(curr->left);
+                stack.push(curr->right);
+            }
+        }
+
+        *root_pptr = curr;
+    }
+
+    // token, token, tree
+    static bst_node *prop_to_bst(bst_node_wrapper left_expr, 
+                                 bst_node* root,
+                                 bst_node_wrapper right_expr)    
+    {
+        bst_node* new_tree = nullptr;
+
+        if (left_expr.is_ptr_ref && right_expr.is_ptr_ref)
+        {
+            new_tree = new bst_node(root->value, left_expr.node, right_expr.node);
+        }
+        else if (left_expr.is_ptr_ref && !right_expr.is_ptr_ref)
+        {
+            new_tree = new bst_node(root->value, left_expr.node, right_expr.node);
+        }
+        else if (!left_expr.is_ptr_ref && right_expr.is_ptr_ref)
+        {
+            new_tree = new bst_node(root->value, left_expr.node, right_expr.node);
+        }
+        else
+        {
+            new_tree = new bst_node(root->value, left_expr.node, right_expr.node);
+        }
+
+        return new_tree;
+    }
+
+    static bst_node* simplifier_cnf_expr(token_stream& stream, 
+                                    const connective_prop_map& conn_prop_map)
+    {
+        std::vector<std::optional<token>> prop_list;
+        stream.write(std::back_inserter(prop_list));
+
+        std::stack<bst_node*> stack;
+        for (const auto& token_opt : prop_list)
+        {
+            assert(token_opt);
+
+            token target = token_opt.value();
+            
+            if (target.type == token::token_type::lparan ||
+                target.type == token::token_type::rparan)
+                stack.push(new bst_node(target));
+            else
+            {
+                auto right_expr = stack.top();
+                if (!stack.empty())
+                    stack.pop();
+
+                auto connective = stack.top();
+                if (!stack.empty())
+                    stack.pop();
+                
+                auto left_expr = stack.top();
+                if (!stack.empty())
+                    stack.pop();
+
+                bst_node* symbol; 
+
+                if (connective->value.type != token::token_type::connective)
+                {
+                    throw std::invalid_argument{"target token must be a connective type"};
+                }
+                else if (!is_connective_type(connective->value, conn_prop_map, connective_type::negation))
+                {
+                    symbol = stack.top();
+                    if (!stack.empty())
+                        stack.pop();
                 }
                 else
                 {
-                    handle_case(&current_node, conn_prop_map, rule_disjunction_distribution{});
-                    stack.push(current_node->left);
-                    stack.push(current_node->right);
+                    symbol = left_expr;
+                }
+
+                if ((symbol->value.type != token::token_type::lparan) &&
+                    (symbol->value.type != token::token_type::rparan))
+                {
+                    throw std::invalid_argument("The expression waited for a parenthesis");
+                }
+                else
+                {
+                    bst_node* new_tree = nullptr;
+                    bst_node_wrapper lexpr{};
+                    bst_node_wrapper rexpr{};
+                    
+                    if (symbol == left_expr)
+                    {
+                        rexpr = bst_node_wrapper::make(new bst_node(*right_expr), false);
+                        lexpr = bst_node_wrapper::make(nullptr, true);
+                        new_tree = prop_to_bst(rexpr, connective, lexpr);
+                    }
+                    else
+                    {
+                        rexpr = bst_node_wrapper::make(new bst_node(*right_expr), false);
+                        lexpr = bst_node_wrapper::make(new bst_node(*left_expr), false);
+                        new_tree = prop_to_bst(lexpr, connective, rexpr);
+                    }
+                    
+                    // apply_morgan_rules(new_tree);
+                    stack.push(new_tree);
                 }
             }
-            else
-                continue;
+        }
+
+        if (stack.empty())
+            return nullptr;
+        
+        auto cnf_tree = stack.top();
+        if (!stack.empty())
+            stack.pop();
+        
+        if (!stack.empty())
+            return nullptr;
+        
+        return cnf_tree;
+    }
+
+    static void simplify_neg_rules(bst_node** root_pptr, 
+                                   const connective_prop_map& conn_prop_map)
+    {
+        auto curr_tree = *root_pptr;
+
+        std::stack<bst_node *> stack;
+        stack.push(curr_tree);
+
+        auto is_conn_type = [&conn_prop_map](token target, connective_type type)
+        {
+            return is_connective_type(target, conn_prop_map, type);
+        };
+
+        while (!stack.empty())
+        {
+            curr_tree = stack.top();
+            stack.pop();
+
+            if (is_conn_type(curr_tree->value, connective_type::negation))
+            {
+                if (is_conn_type(curr_tree->left->value, connective_type::negation))
+                {
+                    handle_case(&curr_tree, conn_prop_map, rule_double_negation{});
+                    stack.push(curr_tree);
+                }
+                else if (is_conn_type(curr_tree->left->value, connective_type::conjuntive) ||
+                         is_conn_type(curr_tree->left->value, connective_type::disjuntive))
+                {
+                    handle_case(&curr_tree, conn_prop_map, rule_negation_distribution{});
+                    stack.push(curr_tree->left);
+                    stack.push(curr_tree->right);
+                }
+            }
         }
     }
 
-    static bst_node** prop_to_bst()
+    static std::string to_expr_str(bst_node** root_pptr)
     {
+        bst_node* curr = (*root_pptr)->clone();
+        std::stack<bst_node *> stack;
+        std::string result;
+
+        stack.push(curr);
         
-    }
+        while (!stack.empty())
+        {
+            curr = stack.top();
+            stack.pop();
 
-    static void simplifier_cnf_expr()
-    {
-        // With doubts about the arguments of the function
-    }
+            if (curr->left && curr->right)
+            {
+                bst_node* tmp = curr->clone();
+                tmp->left = tmp->right = nullptr;
 
-    /*  
-                    [Name Convention]
-        or_rule         => parse_disjunction_rules
-        neg_rules       => parse_negation_rules
-        imp_rule        => parse_implication_rules
-        morgan_rules    => apply_morgan_rules
-        gen_tries       => prop_to_bst
-        CNF_simplifier  => simplifier_cnf_expr
-        show_expression => bst_to_expr
-    */
+                stack.push(new bst_node(token('(', token::token_type::lparan)));
+                stack.push(curr->left);
+                stack.push(new bst_node(token(')', token::token_type::rparan)));
+                
+                stack.push(tmp);
+                
+                stack.push(new bst_node(token('(', token::token_type::lparan)));
+                stack.push(curr->right);
+                stack.push(new bst_node(token(')', token::token_type::rparan)));
+            }
+            else if (curr->left && !curr->right)
+            { 
+                bst_node* tmp = curr->clone();
+                tmp->left = tmp->right = nullptr;
+                
+                stack.push(new bst_node(token('(', token::token_type::lparan)));
+                stack.push(curr->left);
+                stack.push(new bst_node(token(')', token::token_type::rparan)));
+                
+                stack.push(tmp);          
+            }
+            else
+            {
+                result.append(1, curr->value.value);
+            }
+        }
+
+        return result;
+    }
 }

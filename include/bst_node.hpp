@@ -21,7 +21,7 @@ namespace pll::detail
         constexpr bst_node(const bst_node&) = default;
         constexpr bst_node& operator = (const bst_node&) = default;
 
-        constexpr bst_node(const token token, bst_node* lhs, bst_node* rhs)
+        constexpr bst_node(const token token, bst_node* lhs = nullptr, bst_node* rhs = nullptr)
             : value{token},
               left{lhs},
               right{rhs}

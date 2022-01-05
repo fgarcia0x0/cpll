@@ -10,6 +10,17 @@ static inline auto conn_extract_props(pll::token token,
 }
 
 [[nodiscard]]
+static inline std::optional<pll::connective_properties> 
+conn_extract_props(pll::token target, const pll::connective_prop_map& conn_map) noexcept
+{
+    const auto search = conn_map.find(target);
+    if (search != conn_map.cend())
+        return search->second;
+    else
+        return std::nullopt;
+}
+
+[[nodiscard]]
 static bool check_operation_mode(pll::token token, 
                                  const pll::token_stream& stream,
                                  pll::operation_mode target_mode) noexcept
@@ -65,9 +76,20 @@ static bool is_connective_type(pll::token target,
                                const pll::connective_prop_map& conn_map,
                                pll::connective_type conn_type)
 {
-    const auto search = conn_map.find(target);
-    if (search != conn_map.cend())
-        return search->second.type == conn_type;
+    auto conn_prop = conn_extract_props(target, conn_map);
+    if (conn_prop)
+        return conn_prop->type == conn_type;
     else
         return false;
+}
+
+static pll::token extract_token(pll::connective_type type,
+                                const pll::connective_prop_map& conn_map)
+{
+    auto iter = std::find_if(conn_map.cbegin(), conn_map.cend(), [type](const auto& elem)
+    {
+        return elem.second.type == type;
+    });
+
+    return iter->first;
 }
