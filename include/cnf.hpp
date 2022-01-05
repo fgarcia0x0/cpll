@@ -60,7 +60,19 @@ namespace pll::cnf
                             const connective_prop_map& conn_prop_map,
                             rule_double_negation)
     {
+        bst_node* curr = *root_pptr;
 
+        bool is_neg        = is_connective_type(curr->value, conn_prop_map, connective_type::negation);
+        bool is_double_neg = is_connective_type(curr->left->value, conn_prop_map, connective_type::negation);
+
+        if(is_neg && is_double_neg)
+        {
+            curr->value = curr->left->left->value;
+            curr->right = curr->left->left->right;
+            curr->left  = curr->left->left->left;
+        }
+
+        *root_pptr = curr;
     }
 
     // Jonadabe
@@ -241,6 +253,58 @@ namespace pll::cnf
 
                 stack.push(curr->left);
                 stack.push(curr->right);
+            }
+        }
+
+        *root_pptr = curr;
+    }
+
+    //Felipe
+    static void parse_negation_rules(bst_node** root_pptr, const connective_prop_map& conn_prop_map)
+    {
+
+    }
+
+    static void parse_implication_rules(bst_node** root_pptr, const connective_prop_map& conn_prop_map)
+    {
+        auto curr = *root_pptr;
+        auto conn_neg = extract_token(connective_type::negation, conn_prop_map);
+
+        auto is_impl = is_connective_type(curr->value, conn_prop_map, connective_type::implication);
+
+        if(is_impl)
+        {
+            curr->value = extract_token(connective_type::disjuntive, conn_prop_map);
+            bst_node* new_tree = new bst_node(conn_neg, nullptr, nullptr);
+            new_tree->left = curr->left;
+            curr->left = new_tree;
+            parse_negation_rules(&curr->left, conn_prop_map);
+            parse_disjunction_rules(&curr, conn_prop_map);
+        }
+
+        *root_pptr = curr;
+    }
+
+    static void parse_cnf_morgan_rules(bst_node** root_pptr, const connective_prop_map& conn_prop_map)
+    {
+        auto curr = *root_pptr;
+
+        auto is_conjunction = is_connective_type(curr->value, conn_prop_map, connective_type::conjuntive);
+        auto connective = curr->value;
+
+        if(!(is_conjunction))
+        {   
+            if(is_connective_type(connective, conn_prop_map, connective_type::implication))
+            {
+                parse_implication_rules(&curr, conn_prop_map);
+            }
+            else if(is_connective_type(connective, conn_prop_map, connective_type::negation))
+            {
+                parse_negation_rules(&curr, conn_prop_map);
+            }
+            else if(is_connective_type(connective, conn_prop_map, connective_type::disjuntive))
+            {
+                parse_disjunction_rules(&curr, conn_prop_map);
             }
         }
 
