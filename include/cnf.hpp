@@ -259,12 +259,6 @@ namespace pll::cnf
         *root_pptr = curr;
     }
 
-    //Felipe
-    static void parse_negation_rules(bst_node** root_pptr, const connective_prop_map& conn_prop_map)
-    {
-
-    }
-
     static void parse_implication_rules(bst_node** root_pptr, const connective_prop_map& conn_prop_map)
     {
         auto curr = *root_pptr;
@@ -278,7 +272,7 @@ namespace pll::cnf
             bst_node* new_tree = new bst_node(conn_neg, nullptr, nullptr);
             new_tree->left = curr->left;
             curr->left = new_tree;
-            parse_negation_rules(&curr->left, conn_prop_map);
+            simplify_neg_rules(&curr->left, conn_prop_map);
             parse_disjunction_rules(&curr, conn_prop_map);
         }
 
@@ -300,7 +294,7 @@ namespace pll::cnf
             }
             else if(is_connective_type(connective, conn_prop_map, connective_type::negation))
             {
-                parse_negation_rules(&curr, conn_prop_map);
+                simplify_neg_rules(&curr, conn_prop_map);
             }
             else if(is_connective_type(connective, conn_prop_map, connective_type::disjuntive))
             {
