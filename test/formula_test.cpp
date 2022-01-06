@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <token_stream.h>
 #include <grammar.h>
+#include <cnf.hpp>
 
 using pll::token;
 using pll::connective_properties;
@@ -11,6 +12,7 @@ using pll::associativity;
 using pll::connective_type;
 using pll::grammar::recognize;
 using pll::token_stream;
+using namespace pll::cnf;
 
 static std::unordered_map<token, connective_properties> connective_props_map
 {
