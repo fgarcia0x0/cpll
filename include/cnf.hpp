@@ -175,8 +175,10 @@ namespace pll::cnf
                 auto right_copy_tree = curr->right->clone();
                 auto new_tree = new bst_node(curr->left->value, nullptr, nullptr);
 
-                curr->right       = new_tree;
-                new_tree->right   = curr->right;
+                auto temp = curr->right;
+                curr->right = new_tree;
+                new_tree->right = temp;
+
                 curr->right->left = curr->left->right;
                 curr->left->right = right_copy_tree;
             }
@@ -191,8 +193,10 @@ namespace pll::cnf
                 auto right_copy_tree = curr->left->clone();
                 auto new_tree = new bst_node(curr->right->value, nullptr, nullptr);
 
-                curr->left        = new_tree;
-                new_tree->left    = curr->left;
+                auto temp = curr->left;
+                curr->left = new_tree;
+                new_tree->left = temp;
+
                 curr->left->right = curr->right->left;
                 curr->right->left = right_copy_tree;
             }
@@ -201,7 +205,7 @@ namespace pll::cnf
         *root_pptr = curr;
     }
 
-    // Zazac (Funfando)
+    // Zazac
     static void handle_case(bst_node** root_pptr,
                             const connective_prop_map& conn_prop_map,
                             rule_double_conjunction)
@@ -255,13 +259,13 @@ namespace pll::cnf
     }
 
     // TODO: Testar
-    static void parse_disjunction_rules(bst_node** root_pptr,
-                                        const connective_prop_map& conn_prop_map)
+    static void simplify_disj_rules(bst_node** root_pptr,
+                                    const connective_prop_map& conn_prop_map)
     {
         auto curr = *root_pptr;
 
         std::stack<bst_node *> stack;
-        stack.push(*root_pptr);
+        stack.push(curr);
 
         while (!stack.empty())
         {
@@ -291,80 +295,58 @@ namespace pll::cnf
                 stack.push(curr->right);
             }
         }
-
-        *root_pptr = curr;
     }
 
-    static void parse_implication_rules(bst_node** root_pptr, const connective_prop_map& conn_prop_map)
+    static void simplify_imp_rules(bst_node** root_pptr, const connective_prop_map& conn_prop_map)
     {
         auto curr = *root_pptr;
         auto conn_neg = extract_token(connective_type::negation, conn_prop_map);
-
         auto is_impl = is_connective_type(curr->value, conn_prop_map, connective_type::implication);
 
         if (is_impl)
         {
             curr->value = extract_token(connective_type::disjuntive, conn_prop_map);
-            bst_node* new_tree = new bst_node(conn_neg, nullptr, nullptr);
-            new_tree->left = curr->left;
-            curr->left = new_tree;
-            simplify_neg_rules(&curr->left, conn_prop_map);
-            parse_disjunction_rules(&curr, conn_prop_map);
+            
+            bst_node* new_tree = new bst_node(conn_neg);
+            std::swap(curr->left, curr->right);
+
+            new_tree->left = curr->right;
+            curr->right = new_tree;
+
+            simplify_neg_rules(&(curr->right), conn_prop_map);
+            simplify_disj_rules(&curr, conn_prop_map);
         }
 
         *root_pptr = curr;
     }
 
-    static void parse_cnf_morgan_rules(bst_node** root_pptr, const connective_prop_map& conn_prop_map)
+    static void apply_cnf_morgan_rules(bst_node** root_pptr, const connective_prop_map& conn_prop_map)
     {
         auto curr = *root_pptr;
 
         auto is_conjunction = is_connective_type(curr->value, conn_prop_map, connective_type::conjuntive);
         auto connective = curr->value;
 
-        if(!(is_conjunction))
+        if (!is_conjunction)
         {   
-            if(is_connective_type(connective, conn_prop_map, connective_type::implication))
-            {
-                parse_implication_rules(&curr, conn_prop_map);
-            }
-            else if(is_connective_type(connective, conn_prop_map, connective_type::negation))
-            {
+            if (is_connective_type(connective, conn_prop_map, connective_type::implication))
+                simplify_imp_rules(&curr, conn_prop_map);
+            else if (is_connective_type(connective, conn_prop_map, connective_type::negation))
                 simplify_neg_rules(&curr, conn_prop_map);
-            }
-            else if(is_connective_type(connective, conn_prop_map, connective_type::disjuntive))
-            {
-                parse_disjunction_rules(&curr, conn_prop_map);
-            }
+            else if (is_connective_type(connective, conn_prop_map, connective_type::disjuntive))
+                simplify_disj_rules(&curr, conn_prop_map);
         }
 
-        *root_pptr = curr;
+        // *root_pptr = curr;
     }
 
-    // token, token, tree (VERIFICAR E CORRIGIR)
-    static bst_node *prop_to_bst(bst_node_wrapper left_expr, 
+    static bst_node *prop_to_bst(bst_node* left_expr, 
                                  bst_node* root,
-                                 bst_node_wrapper right_expr)    
+                                 bst_node* right_expr)    
     {
-        bst_node* new_tree = nullptr;
-
-        if (left_expr.is_ptr_ref && right_expr.is_ptr_ref)
-        {
-            new_tree = new bst_node(root->value, left_expr.node, right_expr.node);
-        }
-        else if (left_expr.is_ptr_ref && !right_expr.is_ptr_ref)
-        {
-            new_tree = new bst_node(root->value, left_expr.node, right_expr.node);
-        }
-        else if (!left_expr.is_ptr_ref && right_expr.is_ptr_ref)
-        {
-            new_tree = new bst_node(root->value, left_expr.node, right_expr.node);
-        }
-        else
-        {
-            new_tree = new bst_node(root->value, left_expr.node, right_expr.node);
-        }
-
+        bst_node* new_tree = new bst_node(*root);
+        new_tree->left  = left_expr;
+        new_tree->right = right_expr;
         return new_tree;
     }
 
@@ -427,23 +409,17 @@ namespace pll::cnf
                 else
                 {
                     bst_node* new_tree = nullptr;
-                    bst_node_wrapper lexpr{};
-                    bst_node_wrapper rexpr{};
-                    
+
                     if (symbol == left_expr)
                     {
-                        rexpr = bst_node_wrapper::make(new bst_node(*right_expr), false);
-                        lexpr = bst_node_wrapper::make(nullptr, true);
-                        new_tree = prop_to_bst(rexpr, connective, lexpr);
+                        new_tree = prop_to_bst(right_expr, connective, nullptr);
                     }
                     else
                     {
-                        rexpr = bst_node_wrapper::make(new bst_node(*right_expr), false);
-                        lexpr = bst_node_wrapper::make(new bst_node(*left_expr), false);
-                        new_tree = prop_to_bst(lexpr, connective, rexpr);
+                        new_tree = prop_to_bst(left_expr, connective, right_expr);
                     }
                     
-                    parse_cnf_morgan_rules(&new_tree, conn_prop_map);
+                    apply_cnf_morgan_rules(&new_tree, conn_prop_map);
                     stack.push(new_tree);
                 }
             }

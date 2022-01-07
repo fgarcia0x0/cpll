@@ -2,6 +2,7 @@
 #include <cnf.hpp>
 #include <token.hpp>
 #include <unordered_map>
+#include <cstring>
 
 using namespace pll::cnf;
 using namespace pll;
@@ -16,33 +17,19 @@ static std::unordered_map<token, connective_properties> connective_props_map
     { token{')', token::type::rparan},     {3u, connective_type::none,        operation_mode::none,   associativity::none}}, 
 };
 
-int main()
+int main(int argc, char** argv)
 {
-    // (p > q) & (q > r)
-    /*
-    bst_node* root = new bst_node(token('&', token::token_type::connective));
-    root->left = new bst_node(token('>', token::token_type::connective));
-    root->left->left = new bst_node(token('p', token::token_type::atom));
-    root->left->right = new bst_node(token('q', token::token_type::atom));
+    std::string input;
+    input.append(1, '(');
+    input.append(argv[1], std::strlen(argv[1]));
+    input.append(1, ')');
 
-    root->right = new bst_node(token('>', token::token_type::connective));
-    root->right->left = new bst_node(token('q', token::token_type::atom)); 
-    root->right->right = new bst_node(token('r', token::token_type::atom));
-    */
-    
-    // -(-(p & q) or --p)
-
-    std::string input{ "(-(p > q))" };
     token_stream stream(input, "", "&>-#", connective_props_map);
-    auto new_root = simplifier_cnf_expr(stream, connective_props_map);
+    auto root = simplifier_cnf_expr(stream, connective_props_map);
 
     std::string s;
-    to_expr_str(new_root, s, connective_props_map);
+    to_expr_str(root, s, connective_props_map);
     std::cout << s << '\n';
 
     std::cout << "Finished\n";
-
-    // tem q retornar isso aq:
-    // ENTRADA: ((p & q) # (q & r)) # ((r & t) # (q))
-    // SAIDA: (p # r) & (p#t) & (q#r) & (q#t)
 }
