@@ -19,18 +19,9 @@ endif()
 
 file(GLOB_RECURSE PLL_SOURCES RELATIVE ${PROJECT_SOURCE_DIR} "src/*.cpp")
 file(GLOB_RECURSE PLC_SOURCES RELATIVE ${PROJECT_SOURCE_DIR} "test/*.cpp")
-file(GLOB_RECURSE TEST_EX_SOURCES RELATIVE ${PROJECT_SOURCE_DIR} "test_ex/*.cpp")
 
 add_library(pll SHARED ${PLL_SOURCES})
 target_include_directories(pll PUBLIC ${PROJECT_SOURCE_DIR}/include)
-
-add_executable(test_cnf ${TEST_EX_SOURCES})
-target_link_libraries(test_cnf PRIVATE pll)
-set_target_properties(test_cnf PROPERTIES
-	CXX_STANDARD 17
-	CXX_STANDARD_REQUIRED ON
-	CXX_EXTENSIONS OFF
-)
 
 if (PLL_ENABLE_BUILD_TESTING)
 	enable_testing()
