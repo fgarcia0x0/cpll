@@ -336,11 +336,9 @@ namespace pll::cnf
             else if (is_connective_type(connective, conn_prop_map, connective_type::disjuntive))
                 simplify_disj_rules(&curr, conn_prop_map);
         }
-
-        // *root_pptr = curr;
     }
 
-    static bst_node *prop_to_bst(bst_node* left_expr, 
+    static bst_node* prop_to_bst(bst_node* left_expr, 
                                  bst_node* root,
                                  bst_node* right_expr)    
     {
@@ -360,7 +358,6 @@ namespace pll::cnf
         for (const auto& token_opt : prop_list)
         {
             assert(token_opt);
-
             token target = token_opt.value();
             
             if (target.type != token::token_type::rparan)
@@ -385,7 +382,7 @@ namespace pll::cnf
                 if (!stack.empty())
                     stack.pop();
 
-                bst_node* symbol; 
+                bst_node* symbol{}; 
 
                 if (connective->value.type != token::token_type::connective)
                 {
@@ -411,13 +408,9 @@ namespace pll::cnf
                     bst_node* new_tree = nullptr;
 
                     if (symbol == left_expr)
-                    {
                         new_tree = prop_to_bst(right_expr, connective, nullptr);
-                    }
                     else
-                    {
                         new_tree = prop_to_bst(left_expr, connective, right_expr);
-                    }
                     
                     apply_cnf_morgan_rules(&new_tree, conn_prop_map);
                     stack.push(new_tree);
@@ -428,14 +421,14 @@ namespace pll::cnf
         if (stack.empty())
             return nullptr;
         
-        auto cnf_tree = stack.top();
+        auto cnf_tree_root = stack.top();
         if (!stack.empty())
             stack.pop();
         
         if (!stack.empty())
             return nullptr;
         
-        return cnf_tree;
+        return cnf_tree_root;
     }
 
     // TEM Q COMENTAR ESSA PORRA
@@ -446,7 +439,6 @@ namespace pll::cnf
         if (!root)
             return;
 
-        // no folha
         if (!root->left && !root->right)
         {
             str += root->value.value;
@@ -454,11 +446,8 @@ namespace pll::cnf
         }
         
         auto conn_neg = extract_token(connective_type::negation, conn_prop_map);
-
         if (root->value == conn_neg)
-        {
             str += root->value.value;
-        }
 
         if (root->left)
         {
