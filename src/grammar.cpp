@@ -1,7 +1,6 @@
 #include <token.hpp>
 #include <token_stream.h>
 #include <utils.hpp>
-#include <cnf.hpp>
 
 using token_type = pll::token::token_type;
 

@@ -7,28 +7,17 @@
 #include <array>
 #include <optional>
 #include <iterator>
-#include <utils.hpp>
 #include <cassert>
 #include <string>
 
 #include <token.hpp>
 #include <token_stream.h>
 #include <bst_node.hpp>
+#include <utils.hpp>
 
-namespace pll::cnf
+namespace pll::cnf::detail
 {
-    using detail::bst_node;
-    
-    struct bst_node_wrapper
-    {
-        bst_node* node;
-        bool is_ptr_ref;
-
-        static bst_node_wrapper make(bst_node* curr, bool ptr_ref)
-        {
-            return bst_node_wrapper{ curr, ptr_ref };
-        }
-    };
+    using pll::detail::bst_node;
     
     struct rule_handle_case
     {
@@ -55,7 +44,18 @@ namespace pll::cnf
                             const connective_prop_map& conn_prop_map,
                             rule_handle_case) = delete;
 
-    // Joao
+    /**
+     * @brief This function is responsible for eliminating the 
+     *        doubles of the expression
+     *        
+     * 
+     * @param root_pptr Pointer for the root of a tree or subordinate
+     * @param conn_prop_map hashmap for connective properties
+     *
+     * @details 
+     *      INPUT: -(-a)  
+     *      OUTPUT: a
+     */
     static void handle_case(bst_node** root_pptr, 
                             const connective_prop_map& conn_prop_map,
                             rule_double_negation)
@@ -75,7 +75,16 @@ namespace pll::cnf
         *root_pptr = curr;
     }
 
-    // Jonadabe
+    /**
+     * @brief Function that applies Morgan's rules in one determines expression
+     * 
+     * @param root_pptr Pointer for the root of a tree or subordinate
+     * @param conn_prop_map hashmap for connective properties
+     *
+     * @details 
+     *      INPUT:  -(a & b)
+     *      OUTPUT: -a # -b
+     */
     static void handle_case(bst_node** root_pptr,
                             const connective_prop_map& conn_prop_map,
                             rule_negation_distribution)
@@ -107,6 +116,13 @@ namespace pll::cnf
         *root_pptr = curr;
     }
 
+    /**
+     * @brief This function simplifies expression that 
+     *        contains dual denial and rules of Morgan
+     * 
+     * @param root_pptr Pointer for the root of a tree or subordinate
+     * @param conn_prop_map hashmap for connective properties
+     */
     static void simplify_neg_rules(bst_node** root_pptr, 
                                    const connective_prop_map& conn_prop_map)
     {
@@ -143,7 +159,16 @@ namespace pll::cnf
         }
     }
 
-    // Jonadade
+    /**
+     * @brief Responsible for applying disjunction distribution
+     * 
+     * @param root_pptr Pointer for the root of a tree or subordinate
+     * @param conn_prop_map hashmap for connective properties
+     *
+     * @details
+     *      INPUT:  a # ( b & c)     
+     *      OUTPUT: (a # b) & (a # c)
+     */
     static void handle_case(bst_node** root_pptr,
                             const connective_prop_map& conn_prop_map, 
                             rule_disjunction_distribution)
@@ -205,12 +230,20 @@ namespace pll::cnf
         *root_pptr = curr;
     }
 
-    // Zazac
+    /**
+     * @brief Responsible for applying conjunction expansion
+     * 
+     * @param root_pptr Pointer for the root of a tree or subordinate
+     * @param conn_prop_map hashmap for connective properties
+     *
+     * @details 
+     *      INPUT: (a and b) or (c and d)
+     *      OUTPUT: (a or c) and (a or d) and (b or c) and (b or d).
+     */
     static void handle_case(bst_node** root_pptr,
                             const connective_prop_map& conn_prop_map,
                             rule_double_conjunction)
     {
-        // (p&q) # (r&t) ==> (p#r) & (p#t) & (q#r) & (q#t)
         auto curr = *root_pptr;
         auto conn_type = is_connective_type(curr->value, conn_prop_map, connective_type::disjuntive);
         
@@ -258,7 +291,13 @@ namespace pll::cnf
         *root_pptr = curr;
     }
 
-    // TODO: Testar
+    /**
+     * @brief This function simplifies expression that 
+     *        contains conjunction expansion and disjunction distribution
+     * 
+     * @param root_pptr Pointer for the root of a tree or subordinate
+     * @param conn_prop_map hashmap for connective properties
+     */
     static void simplify_disj_rules(bst_node** root_pptr,
                                     const connective_prop_map& conn_prop_map)
     {
@@ -297,6 +336,16 @@ namespace pll::cnf
         }
     }
 
+    /**
+     * @brief Function that applies the rule of implication by an equivalent
+     * 
+     * @param root_pptr Pointer for the root of a tree or subordinate
+     * @param conn_prop_map hashmap for connective properties
+     *
+     * @details
+     *      INPUT: a > b
+     *      OUTPUT: -b # a
+     */
     static void simplify_imp_rules(bst_node** root_pptr, const connective_prop_map& conn_prop_map)
     {
         auto curr = *root_pptr;
@@ -320,6 +369,12 @@ namespace pll::cnf
         *root_pptr = curr;
     }
 
+    /**
+     * @brief Apply morgan rules in cnf tree
+     * 
+     * @param root_pptr the root of tree
+     * @param conn_prop_map hashmap for connective properties
+     */
     static void apply_cnf_morgan_rules(bst_node** root_pptr, const connective_prop_map& conn_prop_map)
     {
         auto curr = *root_pptr;
@@ -338,6 +393,14 @@ namespace pll::cnf
         }
     }
 
+    /**
+     * @brief Utility to assist binary in tree creation
+     * 
+     * @param left_expr left child in bst
+     * @param root root in bst
+     * @param right_expr right chuld in bst
+     * @return the new tree
+     */
     static bst_node* prop_to_bst(bst_node* left_expr, 
                                  bst_node* root,
                                  bst_node* right_expr)    
@@ -347,9 +410,18 @@ namespace pll::cnf
         new_tree->right = right_expr;
         return new_tree;
     }
-
-    static bst_node* simplifier_cnf_expr(token_stream& stream, 
-                                         const connective_prop_map& conn_prop_map)
+    
+    /**
+     * @brief Receives a token stream of the propositional formula and 
+     *        transforms it into a CNF applying the transformations in 
+     *        the binary tree
+     * 
+     * @param stream a stream of tokens of propositional formula
+     * @param conn_prop_map hashmap for connective properties
+     * @return the root of new CNF tree
+     */
+    static bst_node* simplify_cnf_expr(token_stream& stream, 
+                                       const connective_prop_map& conn_prop_map)
     {
         std::vector<std::optional<token>> prop_list;
         stream.write(std::back_inserter(prop_list));
@@ -408,9 +480,18 @@ namespace pll::cnf
                     bst_node* new_tree = nullptr;
 
                     if (symbol == left_expr)
+                    {
                         new_tree = prop_to_bst(right_expr, connective, nullptr);
+                        delete left_expr;
+                        symbol = nullptr;
+                    }
                     else
                         new_tree = prop_to_bst(left_expr, connective, right_expr);
+
+                    delete connective;
+                    
+                    if (symbol)
+                        delete symbol;
                     
                     apply_cnf_morgan_rules(&new_tree, conn_prop_map);
                     stack.push(new_tree);
@@ -418,21 +499,23 @@ namespace pll::cnf
             }
         }
 
-        if (stack.empty())
+        if (stack.size() != 1)
             return nullptr;
         
         auto cnf_tree_root = stack.top();
-        if (!stack.empty())
-            stack.pop();
-        
-        if (!stack.empty())
-            return nullptr;
+        stack.pop();
         
         return cnf_tree_root;
     }
 
-    // TEM Q COMENTAR ESSA PORRA
-    static void to_expr_str(bst_node* root, 
+    /**
+     * @brief  Converts an expression that is in binary tree format to string format
+     * 
+     * @param root The root of tree
+     * @param str reference to result string expression
+     * @param conn_prop_map hashmap for connective properties
+     */
+    static void bst_to_expr(bst_node* root, 
                             std::string& str, 
                             const connective_prop_map& conn_prop_map)
     {
@@ -454,7 +537,7 @@ namespace pll::cnf
             if (root->left->left || root->left->right)
                 str += '(';
             
-            to_expr_str(root->left, str, conn_prop_map);
+            bst_to_expr(root->left, str, conn_prop_map);
 
             if (root->left->left || root->left->right)
                 str += ')';
@@ -473,7 +556,7 @@ namespace pll::cnf
             if (root->right->left || root->right->right)
                 str += '(';
 
-            to_expr_str(root->right, str, conn_prop_map);
+            bst_to_expr(root->right, str, conn_prop_map);
 
             if (root->right->left || root->right->right)
                 str += ')';
